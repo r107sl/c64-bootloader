@@ -1,7 +1,7 @@
 # do not remove intermediate targets
 .SECONDARY:
 
-name := rom
+name := c64_bootloader
 
 ld_config := rom.cfg
 
@@ -40,7 +40,7 @@ build:
 build/$(name).bin: $(obj) $(ld_config)
 	ld65 -o $@ -Ln $@.lbl -m $@.map -C $(ld_config) $(obj) -L /usr/local/lib/cc65/lib --lib c64.lib
 	@cat $@.map | grep -e "^Name\|^RBCP\|^RAMCODE\|^ZEROPAGE\|^CODE\|^DATA\|^BSS\|^RODATA\|^ONCE\|^JMPTBL\|^VECTOR"
-	@mv -f build/rom.bin .
+	@mv -f $@ .
 
 .PHONY: clean
 clean:
