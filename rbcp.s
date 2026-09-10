@@ -27,6 +27,7 @@
 .assert CONFIG_RBCP_BCH_BASE >= CONFIG_ROM_BASE_HI * $100, error, "The back-channel region must be within the ROM space"
 .assert (CONFIG_RBCP_BCH_START >= (CONFIG_RBCP_CMD_PAGE_REL + 1) * $100) .or (CONFIG_RBCP_BCH_START + CONFIG_RBCP_BCH_SIZE <= CONFIG_RBCP_CMD_PAGE_REL * $100), error, "The back-channel region must not overlap with the command page"
 .assert CONFIG_RBCP_BCH_START + CONFIG_RBCP_BCH_SIZE <= CONFIG_ROM_SIZE, error, "The back-channel region must fit within the ROM image size"
+.assert CONFIG_RBCP_CMD_PAGE_REL * $100 < CONFIG_ROM_SIZE, error, "The command page must be reachable on the ROM's address lines"
 
 ; RBCP_READ — compile-time constant only. No leading '(' or ca65 sees indirect.
 .macro RBCP_READ byte_val

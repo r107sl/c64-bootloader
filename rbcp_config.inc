@@ -7,9 +7,29 @@
 ; For example, the C64 kernal ROM is mapped to $E000, hence $E0.
 CONFIG_ROM_BASE_HI = $E0
 
-; Set to the total size of this RBCP ROM image in bytes.  For a C64 kernal
-; ROM, this is 8KB = $2000 bytes.
+; Define C64C_COMBINED to build for a C64C, where a single 23128 serves BASIC
+; and the kernal as one 16KB image, with the kernal in the upper half.  Leave
+; it undefined to build a standalone 8KB C64 kernal ROM.
+;
+; CONFIG_ROM_SIZE is the total size of this RBCP ROM image in bytes.
+;
+; CONFIG_ROM_BASE_OFFSET is the byte offset, within the ROM image, of the byte
+; served at CONFIG_ROM_BASE_HI * $100.  The device sees offsets within the
+; image, not host addresses, so RBCP values sent to the device are derived
+; from it.  On the C64C the kernal occupies the upper 8KB, so host $E000 is
+; image offset $2000.
+;
+; A second constant is needed because the host window is discontiguous on the
+; C64C - BASIC at $A000-$BFFF, the kernal at $E000-$FFFF, with a $2000 hole
+; between.  Adjusting CONFIG_ROM_BASE_HI instead would give a command page of
+; $40 rather than $20.
+.ifdef C64C_COMBINED
+CONFIG_ROM_SIZE = $4000
+CONFIG_ROM_BASE_OFFSET = $2000
+.else
 CONFIG_ROM_SIZE = $2000
+CONFIG_ROM_BASE_OFFSET = $0000
+.endif
 
 ; Set to the high byte to be used for RBCP command page.  If not required
 ; for other things, $E0xx is a good choice in which case the HI value is $E0.
@@ -17,17 +37,17 @@ CONFIG_RBCP_CMD_PAGE = $E0
 
 ; The command page value relative to the start of the ROM image.  This is
 ; the value used to configure the device.
-CONFIG_RBCP_CMD_PAGE_REL = CONFIG_RBCP_CMD_PAGE - CONFIG_ROM_BASE_HI
+CONFIG_RBCP_CMD_PAGE_REL = ((CONFIG_RBCP_CMD_PAGE - CONFIG_ROM_BASE_HI) * $100 + CONFIG_ROM_BASE_OFFSET) / $100
 
 ; Set to the base address of the back channel region, if used.  Should not
 ; conflict with the RBCP address read 
 CONFIG_RBCP_BCH_BASE = $E100
 
 ; Back-channel region start address, as a ROM-relative offset. Must be
-; 4-byte aligned. $0100 places it at $E100 in the C64 address space,
-; leaving the first 256 bytes of the ROM image unmodified for normal
-; ROM content, and also to be used as the command page.
-CONFIG_RBCP_BCH_START = (CONFIG_RBCP_BCH_BASE - (CONFIG_ROM_BASE_HI * $100))
+; 4-byte aligned. A base of $E100 leaves the first 256 bytes of the kernal
+; unmodified for normal ROM content, and to be used as the command page.
+; That is image offset $0100 on the 8KB build and $2100 on the C64C build.
+CONFIG_RBCP_BCH_START = (CONFIG_RBCP_BCH_BASE - (CONFIG_ROM_BASE_HI * $100)) + CONFIG_ROM_BASE_OFFSET
 
 ; Set to the size of the back-channel region, including the header, in bytes.
 CONFIG_RBCP_BCH_SIZE = 1024

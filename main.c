@@ -29,12 +29,14 @@ static const char scrHeader[] = { 79,110,101,32,82,79,77,32,73,109,97,103,101,
 /* string "Firmware" (avoid PETSCII conversion) */
 static const char scrFooter[] = { 70,105,114,109,119,97,114,101,0 };
 
-static const char msgError[32*6] = { "failed to enter rbcp cmd-resp   "
+static const char msgError[32*8] = { "enter rbcp cmd-resp failed      "
                                      "wrong rbcp protocol version     "
-                                     "load previous selection failed  "
-                                     "rbcp get flash slot info failed "
-                                     "no kernals found to boot        "
-                                     "rbcp get device version failed  " };
+                                     "read selection from flash failed"
+                                     "get flash slot info failed      "
+                                     "no rom image found to boot      "
+                                     "get device version failed       "
+                                     "write selection to flash failed "
+                                     "load rom image failed           " };
 
 extern unsigned char error;
 #pragma zpsym ("error");
@@ -129,7 +131,7 @@ void main(void)
 {
     initScreen();
     
-    if (nrSets > 22) { nrSets = 22; }            // limit ROM sets to 22 incl boot kernal
+    if (nrSets > 22) { nrSets = 22; }            // limit ROM sets to 22 including boot kernal
     if (nrSets < selSet) { selSet = 1; }
 
     while (running)
@@ -138,5 +140,8 @@ void main(void)
         handleInput();
         waitVsync();                             // sync with screen to avoid flickering
     }
+
+    VIC.ctrl1 &= ~0x10;                          // disable and clear screen
+    clrScr();                                    // to avoid badlines for RBCP
     return;                                      // selected ROM set in selSel
 }

@@ -154,7 +154,7 @@ initOneROM:
         bcc @prtcl
         dec _error
         bne initOneROM  ; retrial loop in case of an error
-        lda #1          ; failed to enter rbcp cmd-resp
+        lda #1          ; enter rbcp cmd-resp failed
         jmp @exit
 @prtcl: lda #0          ; initialize RBCP error flag with $00
         sta _error
@@ -175,27 +175,29 @@ initOneROM:
         lda #1          ;   load ROM image slot 1 as default
 @ok:    sta _selSet     ; selSet contains previously selected ROM image slot
         rts
-@error: lda #3          ; load previous selection failed
+@error: lda #3          ; read selection from flash failed
 @exit:  sta _error
         rts
         
 readOneROM:
+        lda _error      ; skip to display previous error
+        bne @ok         ; detected in initOneROM
         jsr rbcp_cmd_get_flash_slot_info_all
-        lda #4          ; rbcp get flash slot info failed
+        lda #4          ; get flash slot info failed
         bcs @error
         ldx RBCP_DATA_ADDR + 1
         cpx #2
-        lda #5          ; no kernal found to boot
+        lda #5          ; no rom image found to boot
         bcc @error
         stx _nrSets     ; remember number of available ROM sets
         jsr rbcp_cmd_get_device_version
         bcc @ok
-        lda #6          ; rbcp get device version failed
+        lda #6          ; get device version failed
 @error: sta _error
 @ok:    rts
         
 rememberROM:        
-        lda _selSet     ; load select flash slot
+        lda _selSet     ; load selected flash slot
         sta rbcp_arg0
         lda #0
         sta rbcp_arg1
@@ -203,13 +205,19 @@ rememberROM:
         lda #1          ; select RAM slot 1 for staging
         sta rbcp_arg3
         jsr rbcp_cmd_nv_poke_commit_byte  ; poke selected flash slot
-        
+        bcc activateROM
+        lda #7          ; write selection to flash failed
+        sta _error
+        jmp bootMenu
+       
 activateROM:
         lda #1          ; select RAM slot 1
         ldx _selSet     ; select ROM image slot
         jsr rbcp_cmd_load_slot  ; copy ROM image into RAM
         bcc @ok
-        jmp kernalStart
+        lda #8          ; load rom image failed
+        sta _error
+        jmp bootMenu
 @ok:    lda #1          ; select RAM slot 1
         jsr rbcp_cmd_switch_and_exit  ; activate RAM slot & exit command-resp mode
 
